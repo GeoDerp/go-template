@@ -7,7 +7,7 @@ env:
   SONAR_ORGANIZATION: "geoderp"
   SONAR_PROJECT_KEY: "GeoDerp_go-template"
   PROJECT_DIR: "."
-  GOLANG_VERSION: "1.16"
+  GOLANG_VERSION: "1.23"
   GOLANG_DEPENDENCIES: ""
   
 jobs:
