@@ -1,35 +1,44 @@
-FROM registry.access.redhat.com/ubi9/ubi:latest
+FROM registry.access.redhat.com/ubi9/ubi:latest AS base
 
-RUN dnf update -y; \
+
+ENV container=oci
+ENV USER=default
+
+USER root
+
+# Check for package update
+RUN dnf -y update-minimal --security --sec-severity=Important --sec-severity=Critical && \
 # Install git, nano & golang
 dnf install git nano delve golang golang-docs golang-tests -y; \
-# Install nodejs for SonarQube 
-dnf install nodejs -y; \
 # clear cache
-rm -rf /var/cache
+dnf clean all
 
-# Install Trivy 
-RUN <<EOF cat >> /etc/yum.repos.d/trivy.repo
-[trivy]
-name=Trivy repository
-baseurl=https://aquasecurity.github.io/trivy-repo/rpm/releases/\$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=https://aquasecurity.github.io/trivy-repo/rpm/public.key
-EOF
-RUN dnf update -y; dnf install trivy -y; rm -rf /var/cache
+# Dev target
+FROM base AS dev
+COPY .devcontainer/devtools.sh /tmp/devtools.sh
+RUN  /tmp/devtools.sh
+USER default
 
-
-# OPTIONAL DEPLOYMENT EXAMPLE:
+# DEPLOYMENT EXAMPLE:
 #-----------------------------
+
+# Prod target
+FROM base
+
 ## Make App folder, copy project into container
-# WORKDIR /app
-# COPY . .
+WORKDIR /app
+## REPLACE: replace this COPY statement with project specific files/folders
+COPY . . 
 
 ## Install project requirements, build project
-# RUN go mod download 
-# RUN go build -o /app/run
+RUN go mod download; \
+go build -o /app/run
+
+## clarify permissions
+RUN chown -R default:0 /app && \
+    chmod -R g=u /app
 
 ## Expose port and run app
-# EXPOSE 8080
-# CMD [ /app/run ]
+EXPOSE 8080
+USER default
+CMD [ "/app/run" ]
